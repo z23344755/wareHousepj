@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仓库库存管理系统</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .search-box {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .action-box {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .action-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .search-btn {
+            background-color: #1890ff;
+        }
+        .reset-btn {
+            background-color: #d9d9d9;
+            color: #333;
+        }
+        .inbound-btn {
+            background-color: #52c41a;
+        }
+        .outbound-btn {
+            background-color: #f5222d;
+        }
+        #inboundFile, #outboundFile {
+            display: none;
+        }
+        .warehouse {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fafafa;
+        }
+        .warehouse-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .sku-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .sku-item {
+            background-color: white;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 3px;
+            position: relative;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .error {
+            color: #f5222d;
+            text-align: center;
+            padding: 20px;
+        }
+        .success {
+            color: #52c41a;
+            text-align: center;
+            padding: 20px;
+        }
+        .file-upload {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .file-name {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* 新增编辑按钮样式 */
+        .edit-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .edit-btn:hover {
+            background-color: #40a9ff;
+        }
+
+        /* 编辑模态框样式 */
+        .edit-modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .edit-modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 5px;
+            width: 400px;
+            max-width: 90%;
+        }
+
+        .edit-form-group {
+            margin-bottom: 15px;
+        }
+
+        .edit-form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .edit-form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .edit-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .edit-save-btn {
+            background-color: #52c41a;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .edit-cancel-btn {
+            background-color: #f5222d;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>仓库库存管理系统</h1>
+
+        <div class="action-box">
+            <div class="action-group">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="输入SKU或仓库位置搜索...">
+                    <button class="search-btn" onclick="searchInventory()">搜索</button>
+                    <button class="reset-btn" onclick="resetSearch()">重置</button>
+                </div>
+            </div>
+
+            <div class="action-group">
+                <div class="file-upload">
+                    <input type="file" id="inboundFile" accept=".xlsx,.xls">
+                    <button class="inbound-btn" onclick="document.getElementById('inboundFile').click()">Excel入库</button>
+                    <span id="inboundFileName" class="file-name"></span>
+                </div>
+
+                <div class="file-upload">
+                    <input type="file" id="outboundFile" accept=".xlsx,.xls">
+                    <button class="outbound-btn" onclick="document.getElementById('outboundFile').click()">Excel出库</button>
+                    <span id="outboundFileName" class="file-name"></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="inventoryContainer">
+            <div class="loading">正在加载库存数据...</div>
+        </div>
+    </div>
+
+    <!-- 新增编辑模态框 -->
+    <div id="editModal" class="edit-modal">
+        <div class="edit-modal-content">
+            <h2>编辑库存信息</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="edit-form-group">
+                    <label for="editSkuCode">SKU编码:</label>
+                    <input type="text" id="editSkuCode" required>
+                </div>
+                <div class="edit-form-group">
+                    <label for="editQuantity">数量:</label>
+                    <input type="number" id="editQuantity" min="0" required>
+                </div>
+                <div class="edit-form-group">
+                    <label for="editLevel">Level:</label>
+                    <input type="text" id="editLevel" required>
+                </div>
+                <div class="edit-modal-actions">
+                    <button type="button" class="edit-save-btn" id="saveEditBtn">保存</button>
+                    <button type="button" class="edit-cancel-btn" id="cancelEditBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时获取库存数据
+        document.addEventListener('DOMContentLoaded', fetchInventoryData);
+
+        // 获取库存数据
+        function fetchInventoryData(searchTerm = '') {
+            const container = document.getElementById('inventoryContainer');
+            container.innerHTML = '<div class="loading">正在加载库存数据...</div>';
+
+            fetch('/api/inventory')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络响应不正常');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayInventory(data, searchTerm);
+                })
+                .catch(error => {
+                    container.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
+                    console.error('获取库存数据出错:', error);
+                });
+        }
+
+        // 显示库存数据
+        function displayInventory(data, searchTerm = '') {
+            const container = document.getElementById('inventoryContainer');
+
+            if (data.length === 0) {
+                container.innerHTML = '<div class="error">没有找到库存数据</div>';
+                return;
+            }
+
+            let html = '';
+            const searchString = typeof searchTerm === 'string' ? searchTerm.toLowerCase() : '';
+
+            data.forEach(warehouse => {
+                // 过滤符合搜索条件的SKU
+                const filteredSkus = warehouse.skus.filter(sku =>
+                    !searchString ||
+                    (sku.sku && sku.sku.toLowerCase().includes(searchString)) ||
+                    (warehouse.location && warehouse.location.toLowerCase().includes(searchString))
+                );
+
+                if (filteredSkus.length === 0 && searchString) {
+                    return; // 如果没有匹配的SKU且正在搜索，则跳过这个仓库
+                }
+
+                html += `
+                    <div class="warehouse">
+                        <div class="warehouse-header">
+                            <span>仓库位置: ${warehouse.location}</span>
+                            <span>类型: ${warehouse.type}</span>
+                        </div>
+                        <div>区域坐标: ${JSON.stringify(warehouse.bounds)}</div>
+                        <h3>库存物品 (${filteredSkus.length}个SKU)</h3>
+                        <div class="sku-list">
+                `;
+
+                if (filteredSkus.length > 0) {
+                    filteredSkus.forEach(sku => {
+                        html += `
+                            <div class="sku-item" data-id="${sku.inventory_id}" data-sku="${sku.sku}" data-quantity="${sku.count}" data-level="${sku.level}">
+                                <button class="edit-btn" title="编辑">✏️</button>
+                                <div><strong>SKU:</strong> ${sku.sku}</div>
+                                <div><strong>数量:</strong> ${sku.count}</div>
+                                <div><strong>Level:</strong> ${sku.level}</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<div>该仓库没有库存物品</div>';
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html || '<div class="error">没有找到匹配的库存数据</div>';
+
+            // 为所有编辑按钮添加事件监听
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const skuItem = this.closest('.sku-item');
+                    openEditModal({
+                        id: skuItem.getAttribute('data-id'),
+                        sku_code: skuItem.getAttribute('data-sku'),
+                        quantity: skuItem.getAttribute('data-quantity'),
+                        level: skuItem.getAttribute('data-level')
+                    });
+                });
+            });
+        }
+
+        // 搜索库存
+        function searchInventory() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            fetchInventoryData(searchTerm);
+        }
+
+        // 重置搜索
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            fetchInventoryData();
+        }
+
+        // 入库文件选择处理
+        document.getElementById('inboundFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('inboundFileName').textContent = file.name;
+                uploadExcelFile(file, 'inbound');
+            }
+        });
+
+        // 出库文件选择处理
+        document.getElementById('outboundFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('outboundFileName').textContent = file.name;
+                uploadExcelFile(file, 'outbound');
+            }
+        });
+
+        // 上传Excel文件
+        function uploadExcelFile(file, operationType) {
+            const container = document.getElementById('inventoryContainer');
+            container.innerHTML = `<div class="loading">正在上传并处理Excel文件(${operationType === 'inbound' ? '入库' : '出库'})...</div>`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const apiEndpoint = operationType === 'inbound' ? '/api/upload_inventory' : '/api/upload_outbound';
+
+            fetch(apiEndpoint, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('上传失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                container.innerHTML = `<div class="success">${data.message || `文件${operationType === 'inbound' ? '入库' : '出库'}处理成功`}</div>`;
+                // 上传成功后刷新库存数据
+                fetchInventoryData();
+            })
+            .catch(error => {
+                container.innerHTML = `<div class="error">${operationType === 'inbound' ? '入库' : '出库'}失败: ${error.message}</div>`;
+                console.error('上传Excel文件出错:', error);
+            })
+            .finally(() => {
+                // 清空文件输入
+                if (operationType === 'inbound') {
+                    document.getElementById('inboundFile').value = '';
+                    document.getElementById('inboundFileName').textContent = '';
+                } else {
+                    document.getElementById('outboundFile').value = '';
+                    document.getElementById('outboundFileName').textContent = '';
+                }
+            });
+        }
+
+        // 编辑功能相关代码
+        let currentEditingItem = null;
+        const editModal = document.getElementById('editModal');
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        // 打开编辑模态框
+        function openEditModal(skuData) {
+            currentEditingItem = skuData;
+            document.getElementById('editId').value = skuData.id;
+            document.getElementById('editSkuCode').value = skuData.sku_code;
+            document.getElementById('editQuantity').value = skuData.quantity;
+            document.getElementById('editLevel').value = skuData.level;
+            editModal.style.display = 'block';
+        }
+
+        // 关闭编辑模态框
+        function closeEditModal() {
+            editModal.style.display = 'none';
+            currentEditingItem = null;
+        }
+
+        // 保存编辑
+        function saveEdit() {
+            const id = document.getElementById('editId').value;
+            const sku_code = document.getElementById('editSkuCode').value;
+            const quantity = document.getElementById('editQuantity').value;
+            const level = document.getElementById('editLevel').value;
+
+            if (!sku_code || !quantity || !level) {
+                alert('请填写所有必填字段');
+                return;
+            }
+
+            if (quantity < 0) {
+                alert('数量不能为负数');
+                return;
+            }
+
+            fetch('/api/inventory/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: id,
+                    sku_code: sku_code,
+                    quantity: quantity,
+                    level: level
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('更新失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('库存信息更新成功');
+                closeEditModal();
+                fetchInventoryData(); // 刷新数据
+            })
+            .catch(error => {
+                console.error('更新库存出错:', error);
+                alert('更新失败: ' + error.message);
+            });
+        }
+
+        // 事件监听
+        saveEditBtn.addEventListener('click', saveEdit);
+        cancelEditBtn.addEventListener('click', closeEditModal);
+
+        // 点击模态框外部关闭
+        window.addEventListener('click', function(event) {
+            if (event.target === editModal) {
+                closeEditModal();
+            }
+        });
+    </script>
+</body>
+</html>

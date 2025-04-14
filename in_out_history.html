@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出入库记录</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            width: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>出入库记录</h1>
+    <form id="search-form">
+        <label for="sku-code">SKU Code:</label>
+        <input type="text" id="sku-code" name="sku_code" placeholder="请输入 SKU Code" required>
+        <button type="submit">查询</button>
+    </form>
+    <table id="history-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>操作时间</th>
+                <th>操作类型</th>
+                <th>数量</th>
+                <th>SKU Code</th>
+                <th>仓库位置</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 数据将通过 JavaScript 动态插入 -->
+        </tbody>
+    </table>
+    <div id="error-message" class="error"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('search-form');
+            const skuCodeInput = document.getElementById('sku-code');
+            const tableBody = document.querySelector('#history-table tbody');
+            const errorMessage = document.getElementById('error-message');
+
+            // 检查URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const skuCodeFromUrl = urlParams.get('sku_code');
+
+            // 如果有URL参数，自动查询
+            if (skuCodeFromUrl) {
+                skuCodeInput.value = skuCodeFromUrl;
+                fetchHistory(skuCodeFromUrl);
+            }
+
+            // 表单提交处理
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const skuCode = skuCodeInput.value;
+                fetchHistory(skuCode);
+            });
+
+            // 获取历史记录的函数
+            function fetchHistory(skuCode) {
+                // 清空表格和错误信息
+                tableBody.innerHTML = '';
+                errorMessage.textContent = '';
+
+                // 调用 API 获取数据
+                fetch(`/api/in_out_history?sku_code=${encodeURIComponent(skuCode)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('网络响应错误');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.length === 0) {
+                            errorMessage.textContent = '未找到相关记录';
+                            return;
+                        }
+
+                        // 动态插入数据到表格
+                        data.forEach(item => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${item.id}</td>
+                                <td>${new Date(item.operate_time).toLocaleString()}</td>
+                                <td>${item.operate_type}</td>
+                                <td>${item.quantity}</td>
+                                <td>${item.sku_code}</td>
+                                <td>${item.warehouse_location}</td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    })
+                    .catch(error => {
+                        errorMessage.textContent = '查询失败，请稍后重试';
+                        console.error('Error:', error);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>

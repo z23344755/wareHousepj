@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaflet仓库布局（动态数据加载）</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        
+        #warehouse-map {
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 2px solid #34495e;
+        }
+        
+        .warehouse-title {
+            text-align: center;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+        
+        .leaflet-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .shelf {
+            fill: #e74c3c;
+            fill-opacity: 0.7;
+            stroke: #c0392b;
+            stroke-width: 2;
+        }
+        
+        .zone {
+            fill: #3498db;
+            fill-opacity: 0.5;
+            stroke: #2980b9;
+            stroke-width: 2;
+            stroke-dasharray: 5,5;
+        }
+        
+        .area {
+            fill: #2ecc71;
+            fill-opacity: 0.5;
+            stroke: #27ae60;
+            stroke-width: 2;
+        }
+        
+        .leaflet-tooltip {
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            box-shadow: none;
+        }
+        
+        .leaflet-tooltip-top:before {
+            border-top-color: rgba(0, 0, 0, 0.8);
+        }
+        
+        .area-label {
+            font-size: 10px;
+            font-weight: bold;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            color: #2c3e50;
+            text-shadow: 0 0 3px white;
+        }
+        
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            line-height: 1.5;
+        }
+        
+        .legend h4 {
+            margin: 0 0 8px;
+            text-align: center;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="warehouse-title">仓库布局图</h1>
+    <div id="warehouse-map">
+        <div class="loading">正在加载仓库数据...</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <script>
+        // 初始化地图
+        const map = L.map('warehouse-map', {
+            crs: L.CRS.Simple,
+            minZoom: -1,
+            maxZoom: 10,
+            zoomControl: false,
+            attributionControl: false
+        });
+        
+        // 设置仓库边界
+        const bound_height = 180;
+        const bound_with = 480;
+        
+        const bounds = [bound_with, bound_height];
+        
+        map.setView([120, 100], 1);
+        
+        // 添加网格背景
+        for (let y = 0; y <= bound_height; y += 10) {
+            L.polyline([[y, 0], [y, bound_with]], {color: '#ecf0f1', weight: 1}).addTo(map);
+        }
+        for (let x = 0; x <= bound_with; x += 10) {
+            L.polyline([[0, x], [bound_height, x]], {color: '#ecf0f1', weight: 1}).addTo(map);
+        }
+        
+        // 创建全局变量存储当前提示框
+        let currentHoverTooltip = null;
+        
+        // 从API获取仓库数据
+        async function fetchWarehouseData() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/inventory');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('获取仓库数据失败:', error);
+                document.querySelector('.loading').textContent = '加载仓库数据失败，请刷新重试';
+                return [];
+            }
+        }
+        
+        // 渲染仓库区域
+        function renderWarehouseAreas(warehouseData) {
+            const style_map = {
+                'shelf': { className: 'shelf' },
+                'zone': { className: 'zone' },
+                'area': { className: 'area' }
+            };
+            
+            warehouseData.forEach(area => {
+                const style = style_map[area.type] || { className: 'area' };
+                
+                const rect = L.rectangle(area.bounds, style).addTo(map);
+                
+                // 添加永久标签
+                rect.bindTooltip(area.location, {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'area-label',
+                    opacity: 1
+                });
+                
+                // 准备悬停提示内容
+                let tooltipContent = `<strong>${area.id}</strong><br>`;
+                tooltipContent += `位置: ${area.location}<br>`;
+                tooltipContent += `类型: ${area.type}<br>`;
+                
+                if (area.skus && area.skus.length > 0) {
+                    tooltipContent += "库存:<br>";
+                    area.skus.forEach(item => {
+                        tooltipContent += `- ${item.sku}: ${item.count}件<br>`;
+                    });
+                } else {
+                    tooltipContent += "暂无库存数据<br>";
+                }
+                
+                // 添加交互事件
+                rect.on('mouseover', function(e) {
+                    if (currentHoverTooltip) {
+                        map.removeLayer(currentHoverTooltip);
+                    }
+                    
+                    currentHoverTooltip = L.tooltip({
+                        direction: 'top',
+                        permanent: false,
+                        sticky: true,
+                        className: 'leaflet-tooltip',
+                        opacity: 0.9
+                    })
+                    .setContent(tooltipContent)
+                    .setLatLng(e.latlng)
+                    .addTo(map);
+                });
+                
+                rect.on('mouseout', function() {
+                    if (currentHoverTooltip) {
+                        map.removeLayer(currentHoverTooltip);
+                        currentHoverTooltip = null;
+                    }
+                });
+            });
+            
+            // 添加图例
+            const legend = L.control({position: 'topright'});
+            legend.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = `
+                    <h4>图例</h4>
+                    <div><span style="background:rgba(52, 152, 219, 0.5);border:2px dashed #2980b9;display:inline-block;width:15px;height:15px;"></span> 存储区</div>
+                    <div><span style="background:rgba(231, 76, 60, 0.7);border:2px solid #c0392b;display:inline-block;width:15px;height:15px;"></span> 货架</div>
+                    <div><span style="background:rgba(46, 204, 113, 0.5);border:2px solid #27ae60;display:inline-block;width:15px;height:15px;"></span> 功能区</div>
+                `;
+                return div;
+            };
+            legend.addTo(map);
+            
+            // 地图鼠标移出时移除提示框
+            map.on('mouseout', function() {
+                if (currentHoverTooltip) {
+                    map.removeLayer(currentHoverTooltip);
+                    currentHoverTooltip = null;
+                }
+            });
+            
+            // 移除加载提示
+            document.querySelector('.loading').remove();
+        }
+        
+        // 页面加载完成后获取数据并渲染
+        document.addEventListener('DOMContentLoaded', async () => {
+            const warehouseData = await fetchWarehouseData();
+            if (warehouseData.length > 0) {
+                renderWarehouseAreas(warehouseData);
+            }
+        });
+    </script>
+</body>
+</html>

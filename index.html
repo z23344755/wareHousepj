@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仓库管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #1890ff;
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+        nav ul li {
+            margin-left: 20px;
+        }
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        nav ul li a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .main-content {
+            margin-top: 40px;
+            text-align: center;
+        }
+        .welcome-section {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+        .welcome-section h1 {
+            margin-bottom: 20px;
+            color: #1890ff;
+        }
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-align: center;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .card-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #1890ff;
+        }
+        .card h2 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .card p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .card-btn {
+            display: inline-block;
+            background-color: #1890ff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .card-btn:hover {
+            background-color: #40a9ff;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            nav ul {
+                margin-top: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            nav ul li {
+                margin: 5px 10px;
+            }
+            .card-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">仓库管理系统</div>
+            <nav>
+                <ul>
+                    <li><a href="/sku.html">SKU管理</a></li>
+                    <li><a href="/map.html">仓库地图</a></li>
+                    <li><a href="/in_out_history.html">出入库记录</a></li>
+                    <li><a href="/inventory.html">库存查询</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="welcome-section">
+                <h1>欢迎使用仓库管理系统</h1>
+                <p>高效管理您的库存，实时掌握仓库动态，优化您的供应链管理流程</p>
+            </div>
+
+            <div class="card-container">
+                <div class="card" onclick="window.location.href='/sku.html'">
+                    <div class="card-icon">📦</div>
+                    <h2>SKU管理</h2>
+                    <p>管理您的库存单位信息，包括添加、编辑和查看SKU详细信息</p>
+                    <a href="/sku.html" class="card-btn">进入</a>
+                </div>
+
+                <div class="card" onclick="window.location.href='/map.html'">
+                    <div class="card-icon">🗺️</div>
+                    <h2>仓库地图</h2>
+                    <p>可视化查看仓库布局和库存分布情况</p>
+                    <a href="/map.html" class="card-btn">进入</a>
+                </div>
+
+                <div class="card" onclick="window.location.href='/in_out_history.html'">
+                    <div class="card-icon">📝</div>
+                    <h2>出入库记录</h2>
+                    <p>查看所有物品的出入库历史记录和操作日志</p>
+                    <a href="/in_out_history.html" class="card-btn">进入</a>
+                </div>
+
+                <div class="card" onclick="window.location.href='/inventory.html'">
+                    <div class="card-icon">📊</div>
+                    <h2>库存查询</h2>
+                    <p>实时查询库存状态，支持多种筛选和搜索条件</p>
+                    <a href="/inventory.html" class="card-btn">进入</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2023 仓库管理系统 | 技术支持: IT部门</p>
+    </footer>
+</body>
+</html>
